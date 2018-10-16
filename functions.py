@@ -3,8 +3,8 @@ import numpy as np
 """ GENERAL FUNCTION """
 
 def sigmoid(x):
-    #s = 1/(1+np.exp(-x))
-    s = 0.5 * (1 + np.tanh(0.5*x))
+    s = 1/(1+np.exp(-x))
+    #s = 0.5 * (1 + np.tanh(0.5*x))
     return s
 
 """ LEAST SQUARES FUNCTIONS """
@@ -26,6 +26,12 @@ def compute_stoch_gradient_least_square(y, tx, w):
 
 """ LOGISTIC REGRESSION FUNCTIONS """
 
+def compute_loss_log_reg(y, tx, w):
+    epsilon = 0.00001
+    ones = np.ones(y.shape[0])
+    loss = -(y.T@np.log(sigmoid(tx@w) + epsilon) + (ones-y).T@np.log(ones-sigmoid(tx@w) + epsilon))
+    return loss
+
 def compute_gradient_log_reg(y, tx, w):
     gradient = (tx.T)@(sigmoid(tx@w)-y)
     return gradient
@@ -38,12 +44,8 @@ def gradient_descent_log_reg(y, tx, initial_w, max_iters, gamma):
     w = initial_w
     for n_iter in range(max_iters):
         # ***************************************************
-        loss = 0
         gradient = compute_gradient_log_reg(y, tx, w)
-        for i in range (len(y)):
-            yn = y[i]
-            xn = tx[i]
-            loss += yn*np.log(sigmoid(xn.T@w) + epsilon) + (1-yn)*np.log(1-sigmoid(xn.T@w)+epsilon)
+        loss = compute_loss_log_reg(y, tx, w)
         losses.append(-loss)
         # ***************************************************
         # ***************************************************

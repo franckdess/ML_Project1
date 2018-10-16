@@ -3,8 +3,8 @@ import numpy as np
 """ GENERAL FUNCTION """
 
 def sigmoid(x):
-    s = 1/(1+np.exp(-x))
-    #s = 0.5 * (1 + np.tanh(0.5*x))
+    #s = 1/(1+np.exp(-x))
+    s = 0.5 * (1 + np.tanh(0.5*x))
     return s
 
 """ LEAST SQUARES FUNCTIONS """
@@ -27,10 +27,16 @@ def compute_stoch_gradient_least_square(y, tx, w):
 """ LOGISTIC REGRESSION FUNCTIONS """
 
 def compute_loss_log_reg(y, tx, w):
-    epsilon = 0.00001
-    ones = np.ones(y.shape[0])
-    loss = -(y.T@np.log(sigmoid(tx@w) + epsilon) + (ones-y).T@np.log(ones-sigmoid(tx@w) + epsilon))
-    return loss
+    epsilon = 1e-5
+    #ones = np.ones(y.shape[0])
+    #loss = -(y.T@np.log(sigmoid(tx@w) + epsilon) + (ones-y).T@np.log(ones-sigmoid(tx@w) + epsilon))
+    loss = 0
+    for i in range(len(y)):
+        xn = tx[i]
+        yn = y[i]
+        sig = sigmoid(xn.T@w)
+        loss += yn * np.log(sig + epsilon) + (1 - yn)*np.log(1 - sig + epsilon)
+    return -loss
 
 def compute_gradient_log_reg(y, tx, w):
     gradient = (tx.T)@(sigmoid(tx@w)-y)
@@ -38,18 +44,18 @@ def compute_gradient_log_reg(y, tx, w):
 
 def gradient_descent_log_reg(y, tx, initial_w, max_iters, gamma):
     # Define parameters to store w and loss
-    epsilon = 0.00001
     ws = [initial_w]
     losses = []
     w = initial_w
     for n_iter in range(max_iters):
         # ***************************************************
         gradient = compute_gradient_log_reg(y, tx, w)
+        #print(gradient)
         loss = compute_loss_log_reg(y, tx, w)
-        losses.append(-loss)
+        losses.append(loss)
         # ***************************************************
         # ***************************************************
-        new_w = w - gamma*gradient
+        new_w = w - gamma * gradient
         w = new_w
         # ***************************************************
         # store w and loss

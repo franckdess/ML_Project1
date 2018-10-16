@@ -13,5 +13,5 @@ def compute_stoch_gradient(y, tx, w):
     gradient = (-1/y.size)*np.transpose(tx)@e
     return gradient
 
-def g(x):
+def sigmoid(x):
     return 1/(1+np.exp(-x))

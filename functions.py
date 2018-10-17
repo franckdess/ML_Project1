@@ -26,42 +26,38 @@ def compute_stoch_gradient_least_square(y, tx, w):
 
 """ LOGISTIC REGRESSION FUNCTIONS """
 
-def compute_loss_log_reg(y, tx, w):
+def compute_loss_log_reg(h, y):
     epsilon = 1e-5
-    #ones = np.ones(y.shape[0])
-    #loss = -(y.T@np.log(sigmoid(tx@w) + epsilon) + (ones-y).T@np.log(ones-sigmoid(tx@w) + epsilon))
-    loss = 0
-    for i in range(len(y)):
-        xn = tx[i]
-        yn = y[i]
-        sig = sigmoid(xn.T@w)
-        loss += yn * np.log(sig + epsilon) + (1 - yn)*np.log(1 - sig + epsilon)
-    return -loss
+    loss = (-y * np.log(h + epsilon) - (1 - y) * np.log(1 - h + epsilon)).sum()
+    return loss
 
 def compute_gradient_log_reg(y, tx, w):
     gradient = (tx.T)@(sigmoid(tx@w)-y)
     return gradient
 
+def compute_stoch_gradient_log_reg(y, tx, w):
+    i = np.random.randint(0, len(y)-1)
+    gradient = (tx[i])*(sigmoid(tx@w)[i]-y[i])
+    return gradient
+
 def gradient_descent_log_reg(y, tx, initial_w, max_iters, gamma):
-    # Define parameters to store w and loss
-    ws = [initial_w]
-    losses = []
     w = initial_w
     for n_iter in range(max_iters):
-        # ***************************************************
         gradient = compute_gradient_log_reg(y, tx, w)
-        #print(gradient)
-        loss = compute_loss_log_reg(y, tx, w)
-        losses.append(loss)
-        # ***************************************************
-        # ***************************************************
-        new_w = w - gamma * gradient
-        w = new_w
-        # ***************************************************
-        # store w and loss
-        ws.append(w)
-        losses.append(loss)
+        h = sigmoid(tx@w)
+        loss = compute_loss_log_reg(h, y)
+        w = w - gamma * gradient
         print("Gradient Descent({bi}/{ti}): loss={l}, w0={w0}, w1={w1}".format(
              bi=n_iter, ti=max_iters - 1, l=loss, w0=w[0], w1=w[1]))
+    return loss, w
 
-    return losses, ws
+def stoch_gradient_descent_log_reg(y, tx, initial_w, max_iters, gamma):
+    w = initial_w
+    for n_iter in range(max_iters):
+        gradient = compute_stoch_gradient_log_reg(y, tx, w)
+        h = sigmoid(tx@w)
+        loss = compute_loss_log_reg(h, y)
+        w = w - gamma * gradient
+        print("Gradient Descent({bi}/{ti}): loss={l}, w0={w0}, w1={w1}".format(
+             bi=n_iter, ti=max_iters - 1, l=loss, w0=w[0], w1=w[1]))
+    return loss, w

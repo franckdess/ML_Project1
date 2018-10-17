@@ -29,6 +29,14 @@ def neg_to_zero(array):
             array[i] = 0
     return array
 
+def zero_to_neg(array):
+    for i, v in enumerate(array):
+        if v == 0:
+            array[i] = -1
+    return array
+
+
+
 """ LEAST SQUARES FUNCTIONS """
 
 def compute_mse(y, tx, w):

@@ -7,6 +7,28 @@ def sigmoid(x):
     s = 0.5 * (1 + np.tanh(0.5*x))
     return s
 
+def get_column_mean(wrong_value, df, column_name):
+    s = 0
+    count = 0
+    for idx, row in df.iterrows():
+        if row[column_name] != wrong_value:
+            count += 1
+            s += row[column_name]
+    mean = s/count
+    return mean
+    
+def replace_by_mean(x, mean, column_name):
+    if x == -999:
+        return mean
+    else:
+        return x
+    
+def neg_to_zero(array):
+    for i, v in enumerate(array):
+        if v == -1:
+            array[i] = 0
+    return array
+
 """ LEAST SQUARES FUNCTIONS """
 
 def compute_mse(y, tx, w):
@@ -58,6 +80,6 @@ def stoch_gradient_descent_log_reg(y, tx, initial_w, max_iters, gamma):
         h = sigmoid(tx@w)
         loss = compute_loss_log_reg(h, y)
         w = w - gamma * gradient
-        print("Gradient Descent({bi}/{ti}): loss={l}, w0={w0}, w1={w1}".format(
-             bi=n_iter, ti=max_iters - 1, l=loss, w0=w[0], w1=w[1]))
+        #print("Gradient Descent({bi}/{ti}): loss={l}, w0={w0}, w1={w1}".format(
+        #     bi=n_iter, ti=max_iters - 1, l=loss, w0=w[0], w1=w[1]))
     return loss, w

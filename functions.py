@@ -35,7 +35,28 @@ def zero_to_neg(array):
             array[i] = -1
     return array
 
-
+def get_idx_of_line(array, line):
+    for idx, row in enumerate(array):
+        if(np.array_equal(row, line)):
+            return idx
+           
+def get_util_col(y, x, actual_x, rem_x, actual_loss, indices_util):
+    losses = []
+    for column in (rem_x.T):
+        x_t = np.column_stack((actual_x, column))
+        w, loss = logistic_regression(y, x_t, np.zeros(x_t.shape[1]), 1000, 1e-5)
+        losses.append(loss)
+    min_loss = np.min(losses)
+    if((min_loss < actual_loss) and (len(rem_x.T) != 0)):
+        actual_loss = min_loss
+        idx_x = get_idx_of_line(losses, min_loss)
+        vec_x = rem_x.T[idx_x]
+        rem_x = np.append(rem_x.T[:idx_x], rem_x.T[idx_x+1:], axis=0).T
+        actual_x = np.column_stack((actual_x, vec_x))
+        i = get_idx_of_line(x.T, vec_x.T)
+        indices_util.append(i)
+        get_util_col(y, x, actual_x, rem_x, actual_loss, indices_util)
+    return actual_x, indices_util        
 
 """ LEAST SQUARES FUNCTIONS """
 
@@ -67,7 +88,7 @@ def compute_gradient_log_reg(y, tx, w):
 
 def compute_stoch_gradient_log_reg(y, tx, w):
     i = np.random.randint(0, len(y)-1)
-    gradient = (tx[i])*(sigmoid(tx@w)[i]-y[i])
+    gradient = (tx[i])*(sigmoid(np.dot(tx, w))[i]-y[i])
     return gradient
 
 def gradient_descent_log_reg(y, tx, initial_w, max_iters, gamma):
@@ -77,8 +98,8 @@ def gradient_descent_log_reg(y, tx, initial_w, max_iters, gamma):
         h = sigmoid(tx@w)
         loss = compute_loss_log_reg(h, y)
         w = w - gamma * gradient
-        print("Gradient Descent({bi}/{ti}): loss={l}, w0={w0}, w1={w1}".format(
-             bi=n_iter, ti=max_iters - 1, l=loss, w0=w[0], w1=w[1]))
+        #print("Gradient Descent({bi}/{ti}): loss={l}, w0={w0}, w1={w1}".format(
+        #     bi=n_iter, ti=max_iters - 1, l=loss, w0=w[0], w1=w[1]))
     return loss, w
 
 def stoch_gradient_descent_log_reg(y, tx, initial_w, max_iters, gamma):

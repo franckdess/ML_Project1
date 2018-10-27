@@ -1,6 +1,127 @@
 import numpy as np
+import matplotlib.pyplot as plt
+
+""" VIZUALIZATION CROSS VALIDATION"""
+
+def cross_validation_visualization(lambds, mse_tr, mse_te):
+    """visualization the curves of mse_tr and mse_te."""
+    plt.semilogx(lambds, mse_tr, marker=".", color='b', label='train error')
+    plt.semilogx(lambds, mse_te, marker=".", color='r', label='test error')
+    plt.xlabel("lambda")
+    plt.ylabel("rmse")
+    plt.title("cross validation")
+    plt.legend(loc=2)
+    plt.grid(True)
+    plt.savefig("cross_validation")
+    
+def build_k_indices(y, k_fold, seed):
+    """build k indices for k-fold."""
+    num_row = y.shape[0]
+    interval = int(num_row / k_fold)
+    np.random.seed(seed)
+    indices = np.random.permutation(num_row)
+    k_indices = [indices[k * interval: (k + 1) * interval]
+                 for k in range(k_fold)]
+    return np.array(k_indices)
+
+def cross_validation(y, x, k_indices, k, lambda_, degree):
+    """return the loss of ridge regression."""
+    # ***************************************************
+    # get k'th subgroup in test, others in train: TODO
+    
+    test_indices = k_indices[k]
+    train_indices = np.concatenate((k_indices[:k], k_indices[k+1:])).flatten()
+    
+    x_train = x[train_indices]
+    y_train = y[train_indices]
+    x_test = x[test_indices]
+    y_test = y[test_indices]
+    
+    # ***************************************************
+    # form data with polynomial degree: TODO
+    m_train = build_poly(x_train, degree)
+    m_test = build_poly(x_test, degree)
+    
+    # ***************************************************
+    # ridge regression: TODO
+    w_train, loss_train = ridge_regression(y_train, m_train, lambda_)
+    
+    # ***************************************************
+    # calculate the loss for train and test data: TODO
+    loss_tr = compute_mse(y_train, m_train, w_train)
+    loss_te = compute_mse(y_test, m_test, w_train)
+
+    return loss_tr, loss_te
+
+def cross_validation_demo(y, x, degree):
+    seed = 1
+    k_fold = 4
+    lambdas = np.logspace(-12, 0, 30)
+    # split data in k fold
+    k_indices = build_k_indices(y, k_fold, seed)
+    # define lists to store the loss of training data and test data
+    rmse_tr = []
+    rmse_te = []
+    # ***************************************************
+    for lambda_ in lambdas:
+        err_train = []
+        err_test = []
+        for k in range (k_fold):
+            loss_tr, loss_te = cross_validation(y, x, k_indices, k, lambda_, degree) 
+            err_train.append(np.sqrt(2*loss_tr))
+            err_test.append(np.sqrt(2*loss_te))
+        rmse_tr.append(sum(err_train)/k_fold)
+        rmse_te.append(sum(err_test)/k_fold)
+    # ***************************************************    
+    cross_validation_visualization(lambdas, rmse_tr, rmse_te)
 
 """ GENERAL FUNCTION """
+
+def split_data_tr_te(x, y, ids, ratio, seed=1):
+    """
+    split the dataset based on the split ratio. If ratio is 0.8 
+    you will have 80% of your data set dedicated to training 
+    and the rest dedicated to testing
+    """
+    # set seed
+    np.random.seed(seed)
+    # ***************************************************
+    # INSERT YOUR CODE HERE
+    # split the data based on the given ratio: TODO
+    n_row = y.size
+    indices = np.random.permutation(n_row)
+    
+    split_idx = int(np.floor(ratio*n_row))
+    
+    train_idx = indices[:split_idx]
+    test_idx = indices[split_idx:]
+    
+    x_train = x[train_idx]
+    x_test = x[test_idx]
+    y_train = y[train_idx]
+    y_test = y[test_idx]
+    ids_train = ids[train_idx]
+    ids_test = ids[test_idx]
+    
+    return x_train, x_test, y_train, y_test, ids_train, ids_test
+    # ***************************************************
+    
+def predict_na_columns(x, indices):
+    for i in indices:
+        x_i_train, y_i_train, x_i_test, indices_to_drop_i, indices_to_keep_i = split_data(x, i, indices)
+        w_i, loss_i = least_squares(y_i_train, x_i_train)
+        y_i_test = x_i_test @ w_i
+        y_i_arr = np.column_stack((indices_to_drop_i, y_i_test))
+        x = put_back_y(x, i, y_i_arr)
+    return x, w_i
+
+def set_predict_na_columns(x, w, indices):
+    for i in indices:
+        x_i_train, y_i_train, x_i_test, indices_to_drop_i, indices_to_keep_i = split_data(x, i, indices)
+        y_i_test = x_i_test @ w
+        y_i_arr = np.column_stack((indices_to_drop_i, y_i_test))
+        x = put_back_y(x, i, y_i_arr)
+    return x
 
 def sigmoid(x):
     #s = 1/(1+np.exp(-x))
@@ -17,12 +138,12 @@ def get_column_mean(wrong_value, df, column_name):
     mean = s/count
     return mean
 
-def get_na_columns(array, threshold):
+def get_na_columns(array, threshold, value):
     na_indices = []
     for ind, row in enumerate(array.T):
         count_na = 0
         for j in range(len(row)):
-            if int(row[j]) == -999:
+            if row[j] == value:
                 count_na += 1
         if (count_na/len(row)) > threshold:
             na_indices.append(ind)
@@ -67,23 +188,36 @@ def replace_by_mean(x, mean, column_name):
         return x
     
 def neg_to_zero(array):
+    ret = np.zeros(len(array))
     for i, v in enumerate(array):
         if v == -1:
-            array[i] = 0
-    return array
+            ret[i] = 0
+        else:
+            ret[i] = v
+    return ret
 
 def zero_to_neg(array):
+    ret = np.zeros(len(array))
     for i, v in enumerate(array):
         if v == 0:
-            array[i] = -1
-    return array
+            ret[i] = -1
+        else:
+            ret[i] = v
+    return ret
 
-def standardize(array):
-    new_array = (array.T - array.mean(1)).T
-    std = new_array.std(1)
-    new_array = (new_array.T/std).T
-    new_array = np.column_stack((np.ones(len(new_array)), new_array))
-    return new_array
+def standardize(x_train, x_test):
+    mean = np.mean(x_train)
+    norm = np.linalg.norm(x_train)
+    x_train_std = (x_train - mean)/norm
+    x_test_std = (x_test - mean)/norm
+    return x_train_std, x_test_std
+
+def least_squares(y, tx):
+    A = tx.T@tx
+    b = tx.T@y
+    w = np.linalg.solve(A, b)
+    loss = compute_mse(y, tx, w)
+    return w, loss
     
 def get_idx_of_line(array, line):
     for idx, row in enumerate(array):
@@ -110,12 +244,12 @@ def get_util_col(y, x, actual_x, rem_x, actual_loss, indices_util):
 
 """ RIDGE REGRESSION FUNCTIONS """
 
-def ridge_regression(y, tx, lambda_):
-    X = tx.T@tx
-    N = X.shape[0]
-    A = (X + 2*N*lambda_*np.identity(N))
-    b = tx.T@y
-    w = np.linalg.solve(A, b)
+def ridge_regression(y, tx, lamb):
+    """implement ridge regression."""
+    aI = lamb * np.identity(tx.shape[1])
+    a = tx.T.dot(tx) + aI
+    b = tx.T.dot(y)
+    w = np.linalg.solve(a, b)
     loss = compute_mse(y, tx, w)
     return w, loss
 
@@ -161,7 +295,7 @@ def gradient_descent_log_reg(y, tx, initial_w, max_iters, gamma):
         w = w - gamma * gradient
         #print("Gradient Descent({bi}/{ti}): loss={l}".format(
         #    bi=n_iter, ti=max_iters - 1, l=loss))
-    return loss, w
+    return w, loss
 
 def stoch_gradient_descent_log_reg(y, tx, initial_w, max_iters, gamma):
     w = initial_w
@@ -172,10 +306,10 @@ def stoch_gradient_descent_log_reg(y, tx, initial_w, max_iters, gamma):
         w = w - gamma * gradient
         #print("Gradient Descent({bi}/{ti}): loss={l}, w0={w0}, w1={w1}".format(
         #     bi=n_iter, ti=max_iters - 1, l=loss, w0=w[0], w1=w[1]))
-    return loss, w
+    return w, loss
 
 def logistic_regression(y, tx, initial_w, max_iters, gamma):
-    loss, w = stoch_gradient_descent_log_reg(y, tx, initial_w, max_iters, gamma)
+    w, loss = stoch_gradient_descent_log_reg(y, tx, initial_w, max_iters, gamma)
     return w, loss
 
 """ REGULARIZED LOGISTIC REGRESSION FUNCTIONS """
@@ -198,4 +332,4 @@ def reg_gradient_descent_log_reg(y, tx, lambda_, initial_w, max_iters, gamma):
         w = w - gamma * gradient
         #print("Gradient Descent({bi}/{ti}): loss={l}, w0={w0}, w1={w1}".format(
         #    bi=n_iter, ti=max_iters - 1, l=loss, w0=w[0], w1=w[1]))
-    return loss, w
+    return w, loss

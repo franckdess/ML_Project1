@@ -53,6 +53,36 @@ def cross_validation(y, x, k_indices, k, lambda_, degree):
 
     return loss_tr, loss_te
 
+def cross_validation_log_reg(y, x, k_indices, k, max_iters, gamma, degree):
+    """return the loss of ridge regression."""
+    # ***************************************************
+    # get k'th subgroup in test, others in train: TODO
+    
+    test_indices = k_indices[k]
+    train_indices = np.concatenate((k_indices[:k], k_indices[k+1:])).flatten()
+    
+    x_train = x[train_indices]
+    y_train = y[train_indices]
+    x_test = x[test_indices]
+    y_test = y[test_indices]
+    
+    # ***************************************************
+    # form data with polynomial degree: TODO
+    m_train = build_poly(x_train, degree)
+    m_test = build_poly(x_test, degree)
+    
+    # ***************************************************
+    # ridge regression: TODO
+    w_train, loss_train = logistic_regression(y_train, m_train, np.zeros(m_train.shape[1]), max_iters, gamma)
+    h = sigmoid(m_test@w_train)
+    loss_test = compute_loss_log_reg(h, y_test)
+    # ***************************************************
+    # calculate the loss for train and test data: TODO
+    loss_tr = loss_train
+    loss_te = loss_test
+
+    return loss_tr, loss_te
+
 def cross_validation_demo(y, x, degree):
     seed = 1
     k_fold = 4
@@ -74,6 +104,29 @@ def cross_validation_demo(y, x, degree):
         rmse_te.append(sum(err_test)/k_fold)
     # ***************************************************    
     cross_validation_visualization(lambdas, rmse_tr, rmse_te)
+    
+    
+def cross_validation_demo_log_reg(y, x, max_iters, degree):
+    seed = 1
+    k_fold = 4
+    gammas = np.logspace(-12, 0, 30)
+    # split data in k fold
+    k_indices = build_k_indices(y, k_fold, seed)
+    # define lists to store the loss of training data and test data
+    rmse_tr = []
+    rmse_te = []
+    # ***************************************************
+    for gamma in gammas:
+        err_train = []
+        err_test = []
+        for k in range (k_fold):
+            loss_tr, loss_te = cross_validation_log_reg(y, x, k_indices, k, max_iters, gamma, degree)
+            err_train.append(loss_tr)
+            err_test.append(loss_te)
+        rmse_tr.append(sum(err_train)/k_fold)
+        rmse_te.append(sum(err_test)/k_fold)
+    # ***************************************************    
+    cross_validation_visualization(gammas, rmse_tr, rmse_te)
 
 """ GENERAL FUNCTION """
 

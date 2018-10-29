@@ -122,7 +122,7 @@ def split_data(x, indice, indices):
     x_i_test = np.take(x_train_tr, indices_to_drop_i, axis = 0)
     return x_i_train, y_i_train, x_i_test, indices_to_drop_i, indices_to_keep_i
         
-""" CROSS VALIDATION VIZUALIZATION"""
+""" CROSS VALIDATION VIZUALIZATION """
 
 # Displays the rmse of train and test set depending on the lambda.
 def cross_validation_visualization(lambds, mse_tr, mse_te):

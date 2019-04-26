@@ -1,4 +1,4 @@
-THIS 'SUBMISSION’ FOLDER CONTAINS THE FOLLOWING 7 ELEMENTS :
+This 'Submission’ folder contains the following 7 elements:
 
 - proj1_helpers.py:
 Contains the helper functions provided for the project1.
